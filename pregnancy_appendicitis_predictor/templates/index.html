@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Research prototype for predicting observed surgical treatment decisions in pregnancy-associated appendicitis.">
+    <title>Pregnancy-Associated Appendicitis Prediction</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script defer src="{{ url_for('static', filename='app.js') }}"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">Research prototype · Random Forest</p>
+          <h1>Pregnancy-Associated Appendicitis Prediction</h1>
+        </div>
+        <span class="model-pill">15 predictors · 20 imputations</span>
+      </header>
+
+      <p class="scope-note">
+        Enter the patient’s pre-treatment information. The model estimates the probability of the
+        <strong>observed decision to perform surgery</strong>; it does not estimate surgical necessity or benefit.
+      </p>
+
+      <form id="prediction-form" class="prediction-form" autocomplete="off">
+        <section class="input-card">
+          <div class="section-heading">
+            <span class="section-number">01</span>
+            <div><h2>Basic &amp; obstetric information</h2><p>Patient characteristics recorded at assessment</p></div>
+          </div>
+          <div class="field-grid field-grid--3">
+            <label class="field"><span>Maternal age <small>years</small></span><input name="age" type="number" min="18" step="1" placeholder="e.g. 29"></label>
+            <label class="field"><span>Gestational age <small>weeks</small></span><input name="gestational_age" type="number" min="0" max="45" step="0.1" placeholder="e.g. 18.9"></label>
+            <label class="field"><span>Primiparity</span><select name="primiparity"><option value="">Unavailable</option><option value="0">No</option><option value="1">Yes</option></select></label>
+            <label class="field"><span>Diabetes</span><select name="diabetes"><option value="">Unavailable</option><option value="0">No</option><option value="1">Yes</option></select></label>
+            <label class="field"><span>Hypertension</span><select name="hypertension"><option value="">Unavailable</option><option value="0">No</option><option value="1">Yes</option></select></label>
+            <label class="field"><span>Placental abnormalities</span><select name="placental_abnormalities"><option value="">Unavailable</option><option value="0">No</option><option value="1">Yes</option></select></label>
+          </div>
+        </section>
+
+        <section class="input-card">
+          <div class="section-heading">
+            <span class="section-number">02</span>
+            <div><h2>Symptoms &amp; laboratory findings</h2><p>Clinical and inflammatory indicators</p></div>
+          </div>
+          <div class="field-grid field-grid--3">
+            <label class="field"><span>Body temperature <small>°C</small></span><input name="body_temperature" type="number" min="25" max="45" step="0.1" placeholder="e.g. 36.7"></label>
+            <label class="field"><span>Fever</span><select name="fever"><option value="">Unavailable</option><option value="0">No</option><option value="1">Yes</option></select></label>
+            <label class="field"><span>Abdominal pain duration <small>hours</small></span><input name="pain_duration" type="number" min="0" step="0.1" placeholder="e.g. 24"></label>
+            <label class="field"><span>WBC count <small>10⁹/L</small></span><input name="wbc" type="number" min="0" step="0.01" placeholder="e.g. 13.87"></label>
+            <label class="field"><span>CRP level <small>mg/L</small></span><input name="crp" type="number" min="0" step="0.01" placeholder="e.g. 12.95"></label>
+            <label class="field"><span>Neutrophil percentage <small>%</small></span><input name="neutrophils" type="number" min="0" max="100" step="0.1" placeholder="e.g. 81.6"></label>
+          </div>
+        </section>
+
+        <section class="input-card">
+          <div class="section-heading">
+            <span class="section-number">03</span>
+            <div><h2>Pre-treatment imaging findings</h2><p>Ultrasound or MRI findings documented before treatment selection</p></div>
+          </div>
+          <div class="field-grid field-grid--3">
+            <label class="field"><span>Appendiceal swelling</span><select name="appendiceal_swelling"><option value="">Unavailable</option><option value="0">No</option><option value="1">Yes</option></select></label>
+            <label class="field"><span>Appendiceal abscess</span><select name="abscess"><option value="">Unavailable</option><option value="0">No</option><option value="1">Yes</option></select></label>
+            <label class="field"><span>Right lower quadrant effusion</span><select name="rlq_effusion"><option value="">Unavailable</option><option value="0">No</option><option value="1">Yes</option></select></label>
+          </div>
+        </section>
+
+        <p class="missing-note">Unavailable fields are handled by the 20 fitted imputation models. “Unavailable” is not treated as “No”.</p>
+        <div id="form-error" class="form-error" role="alert" hidden></div>
+        <button id="predict-button" class="predict-button" type="submit">
+          <span class="button-label">Predict observed surgical decision probability</span>
+          <span class="button-loading" hidden>Calculating 20-model result…</span>
+        </button>
+      </form>
+
+      <section id="prediction-result" class="result-card" aria-live="polite" hidden>
+        <div class="result-heading">
+          <p class="eyebrow">Prediction result</p>
+          <h2>Observed surgical-decision probability</h2>
+        </div>
+        <div id="probability-banner" class="probability-banner">
+          <span id="probability-value">—</span>
+          <small id="classification-label"></small>
+        </div>
+        <div class="result-facts" aria-label="Prediction details">
+          <div><span>Pooling</span><strong>20 matched models</strong></div>
+          <div><span>Threshold</span><strong>0.50</strong></div>
+          <div><span>Imputed inputs</span><strong id="imputed-count">0 of 15</strong></div>
+        </div>
+        <div id="result-warnings" class="result-warnings" hidden></div>
+        <figure class="shap-figure">
+          <img id="shap-plot" alt="Patient-specific SHAP waterfall plot showing how each input shifts the model output.">
+          <figcaption>
+            Pooled class-1 SHAP values across the 20 matched imputer–Random Forest pairs.
+            Positive values shift the output toward observed surgery; negative values shift it toward conservative management.
+          </figcaption>
+        </figure>
+        <aside class="clinical-warning">
+          This research-only output reproduces historical treatment-selection patterns in one retrospective cohort.
+          It is not a probability that surgery is necessary or beneficial, is not externally validated, and must not be used as an independent treatment recommendation.
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>

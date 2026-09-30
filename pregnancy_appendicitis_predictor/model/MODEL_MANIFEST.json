@@ -1,0 +1,18 @@
+{
+  "source": "../XGBoostbest_MI_CV_outputs/models/random_forest_mi_ensemble.pkl",
+  "deployed_file": "random_forest_mi_ensemble.pkl",
+  "sha256": "4222aee7e31348831ab8b75c60e564762b2478ae46e7b08193dc5d1f81f25358",
+  "model_name": "Random Forest",
+  "n_imputations": 20,
+  "probability_pooling": "arithmetic mean across matched imputer-model pairs",
+  "best_params": {
+    "n_estimators": 50,
+    "max_depth": 5,
+    "max_features": "log2",
+    "min_samples_split": 2,
+    "min_samples_leaf": 1,
+    "random_state": 42
+  },
+  "classification_threshold": 0.5,
+  "positive_class": "observed surgical treatment decision"
+}
